@@ -11,14 +11,14 @@ export interface KKAgent<A>{
  * @template A action type
  */
 export abstract class KKStepAgent<A> implements KKAgent<A>{
-    onActionEvent:KEvent<A,undefined> = new KEvent();
-    abstract updateActions(actions:A[]):void
+    actionEvent = new KEvent<A,undefined>(1);
+    abstract updateActions(actions:A[]):void;
     onRequestAction(actions:A[],onResponse:(action:A)=>void){
         this.updateActions(actions);
-        this.onActionEvent.once(onResponse);
+        this.actionEvent.once(onResponse);
     }
     selectAction(action:A){
-        this.onActionEvent.trigger(action);
+        this.actionEvent.trigger(action);
     }
 }
 
@@ -26,20 +26,24 @@ export abstract class KKStepAgent<A> implements KKAgent<A>{
  * @template V view type
  */
 export interface KKObserver<V>{
-    onNewViews(views:V[],onReceived:()=>void):void
+    receiveViews(views:V[],onReceived:()=>void):void
 }
 
 /**
  * @template V view type
  */
-export interface KKRenderer<V> extends KKObserver<V>{
-    render(view:V):void
+export abstract class KKRenderer<V> implements KKObserver<V>{
+    drawEvent = new KEvent<V,undefined>(1);
+    onDraw(h:(view:V)=>void){
+        this.drawEvent.register(h);
+    }
+    abstract receiveViews(views:V[],onReceived:()=>void):void;
 }
 
 /**
  * @template V view type
  */
-export abstract class KKFrameRenderer<V> implements KKRenderer<V>{
+export class KKFrameRenderer<V> extends KKRenderer<V>{
     curr:V;
     buffer:V[] = [];
     _save(views:V[]){
@@ -48,6 +52,7 @@ export abstract class KKFrameRenderer<V> implements KKRenderer<V>{
         }
     }
     constructor(views:V[]){
+        super();
         this._save(views);
         const v = this.buffer.shift();
         if(v){
@@ -57,32 +62,30 @@ export abstract class KKFrameRenderer<V> implements KKRenderer<V>{
             throw new Error("no init view");
         }
     }
-    onNewViews(views:V[],onReceived:()=>void):void{
+    receiveViews(views:V[],onReceived:()=>void):void{
         this._save(views);
         onReceived();
     }
-    onDraw():void{
+    draw():void{
         const v = this.buffer.shift();
         if(v){
             this.curr = v;
         }
-        this.render(this.curr);
+        this.drawEvent.trigger(this.curr);
     }
-    abstract render(view:V):void
 }
 
 /**
  * @template V view type
  */
-export abstract class KKDirectRenderer<V> implements KKRenderer<V>{
-    onNewViews(views:V[],onReceived:()=>void):void{
+export class KKDirectRenderer<V> extends KKRenderer<V>{
+    receiveViews(views:V[],onReceived:()=>void):void{
         setImmediate(onReceived);
         const view = views.pop();
         if(view){
-            this.render(view);
+            this.drawEvent.trigger(view);
         }
     }
-    abstract render(view:V):void
 }
 
 /**
@@ -92,13 +95,12 @@ export abstract class KKDirectRenderer<V> implements KKRenderer<V>{
  * @template A action type
  */
 export abstract class KKBroker<G extends KKStepAgent<A>,O extends KKObserver<V>,A,V>{
-    curr = 0;
     running = true;
     agentMap = new Map<string,G>();
     observerMap = new Map<string,O>();
-    abstract generateAgentActionsMap():Map<string,A[]>
-    abstract generateObserverViewsMap():Map<string,V[]>
-    abstract execute(actionMap:Map<string,A>):void
+    abstract generateAgentActionsMap():Map<string,A[]>;
+    abstract generateObserverViewsMap():Map<string,V[]>;
+    abstract execute(actionMap:Map<string,A>):void;
 }
 
 /**
@@ -108,8 +110,10 @@ export abstract class KKBroker<G extends KKStepAgent<A>,O extends KKObserver<V>,
  * @template V view type
  */
 export abstract class KKStepBroker<G extends KKStepAgent<A>,O extends KKObserver<V>,A,V> extends KKBroker<G,O,A,V>{
+    round = 0;
     tick(onTicked:()=>void){
         if(this.running){
+            this.round++;
             // actions buffer
             const actionMap = new Map<string,A>();
             // request actions
@@ -139,7 +143,7 @@ export abstract class KKStepBroker<G extends KKStepAgent<A>,O extends KKObserver
                         const observer = this.observerMap.get(id);
                         if(observer){
                             setImmediate(()=>{
-                                observer.onNewViews(views,onDone);
+                                observer.receiveViews(views,onDone);
                             });
                         }
                     });
