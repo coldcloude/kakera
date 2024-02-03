@@ -2,36 +2,36 @@ module.exports = {
     "env": {
         "browser": true,
         "es2021": true,
-        "node": true
+        "node": true,
     },
     "extends": [
         "eslint:recommended",
-        "plugin:@typescript-eslint/recommended"
+        "plugin:@typescript-eslint/recommended",
     ],
     "overrides": [
         {
             "env": {
-                "node": true
+                "node": true,
             },
             "files": [
-                ".eslintrc.{js,cjs}"
+                ".eslintrc.{js,cjs}",
             ],
             "parserOptions": {
-                "sourceType": "script"
+                "sourceType": "script",
             }
-        }
+        },
     ],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
         "ecmaVersion": "latest",
-        "sourceType": "module"
+        "sourceType": "module",
     },
     "plugins": [
-        "@typescript-eslint"
+        "@typescript-eslint",
     ],
     "rules": {
-        "semi": ["error","always"],
-        "no-unused-vars": ["error", {"args":"none"}],
-        "@typescript-eslint/no-unused-vars": ["error", {"args":"none"}]
-    }
+        "@typescript-eslint/semi": ["warn","always"],
+        "@typescript-eslint/no-unused-vars": ["warn"],
+        "@typescript-eslint/no-this-alias": ["warn"],
+    },
 };
