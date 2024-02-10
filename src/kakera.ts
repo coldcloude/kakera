@@ -1,24 +1,64 @@
-import {KEvent,KLoader} from "@coldcloude/kai2";
+import {KEvent,KHashTable,KLoader,KMap, strcmp, strhash} from "@coldcloude/kai2";
 
 /**
+ * @template C command type
  * @template A action type
  */
-export interface KKAgent<A>{
-    updateActions(actions:A[]):void
+export abstract class KKAgent<C,A>{
+    abstract updateCommands(commands:C[]):void;
+    abstract selectAction(action:A):void;
+    abstract checkAction(action:A):boolean;
+    trySelectAction(action:A):boolean{
+        if(this.checkAction(action)){
+            this.selectAction(action);
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+}
+
+/**
+ * @template C command type
+ * @template A action type
+ */
+export abstract class KKStepAgent<C,A> extends KKAgent<C,A>{
+    actionEvent = new KEvent<A,void>(1);
+    abstract updateCommands(commands:C[]):void;
+    abstract checkAction(action:A):boolean;
+    onRequestAction(commands:C[],responseHandle:(action:A)=>void){
+        this.updateCommands(commands);
+        this.actionEvent.once(responseHandle);
+    }
+    selectAction(action:A){
+        this.actionEvent.trigger(action);
+    }
+}
+
+/**
+ * @template C command type
+ * @template A action type
+ */
+export abstract class KKPushAgent<C,A> extends KKAgent<C,A>{
+    actionEvent = new KEvent<A,void>(1);
+    abstract updateCommands(commands:C[]):void;
+    abstract checkAction(action:A):boolean;
+    onSelectAction(selectHandle:(action:A)=>void){
+        this.actionEvent.register(selectHandle);
+    }
+    selectAction(action:A){
+        this.actionEvent.trigger(action);
+    }
 }
 
 /**
  * @template A action type
  */
-export abstract class KKStepAgent<A> implements KKAgent<A>{
-    actionEvent = new KEvent<A,undefined>(1);
-    abstract updateActions(actions:A[]):void;
-    onRequestAction(actions:A[],onResponse:(action:A)=>void){
-        this.updateActions(actions);
-        this.actionEvent.once(onResponse);
-    }
-    selectAction(action:A){
-        this.actionEvent.trigger(action);
+export abstract class KKCompleteInfoPlayer<A> extends KKStepAgent<void,A>{
+    activeEvent = new KEvent<void,void>(1);
+    updateCommands(){
+        this.activeEvent.trigger();
     }
 }
 
@@ -34,10 +74,7 @@ export interface KKObserver<V>{
  */
 export abstract class KKRenderer<V> implements KKObserver<V>{
     drawEvent = new KEvent<V,undefined>(1);
-    onDraw(h:(view:V)=>void){
-        this.drawEvent.register(h);
-    }
-    abstract receiveViews(views:V[],onReceived:()=>void):void;
+    abstract receiveViews(views:V[],receiveHandler:()=>void):void;
 }
 
 /**
@@ -80,10 +117,9 @@ export class KKFrameRenderer<V> extends KKRenderer<V>{
  */
 export class KKDirectRenderer<V> extends KKRenderer<V>{
     receiveViews(views:V[],onReceived:()=>void):void{
-        setImmediate(onReceived);
-        const view = views.pop();
-        if(view){
-            this.drawEvent.trigger(view);
+        setTimeout(onReceived,0);
+        if(views.length>0){
+            this.drawEvent.trigger(views[views.length-1]);
         }
     }
 }
@@ -92,62 +128,82 @@ export class KKDirectRenderer<V> extends KKRenderer<V>{
  * @template G agent type
  * @template O observer type
  * @template S scene type
+ * @template C cammand type
  * @template A action type
  */
-export abstract class KKBroker<G extends KKStepAgent<A>,O extends KKObserver<V>,A,V>{
-    running = true;
-    agentMap = new Map<string,G>();
-    observerMap = new Map<string,O>();
-    abstract generateAgentActionsMap():Map<string,A[]>;
-    abstract generateObserverViewsMap():Map<string,V[]>;
-    abstract execute(actionMap:Map<string,A>):void;
+export abstract class KKBroker<G extends KKAgent<C,A>,O extends KKObserver<V>,C,A,V>{
+    running = false;
+    agentMap:KMap<string,G>;
+    observerMap:KMap<string,O>;
+    constructor(agentMap:KMap<string,G>,observerMap:KMap<string,O>){
+        this.agentMap = agentMap;
+        this.observerMap = observerMap;
+    }
+    init():void{
+
+    }
+    abstract generateAgentCommandsMap():KMap<string,C[]>;
+    abstract generateObserverViewsMap():KMap<string,V[]>;
+    abstract execute(actionMap:KMap<string,A>):boolean;
 }
 
 /**
  * @template G agent type
  * @template O observer type
+ * @template C cammand type
  * @template A action type
  * @template V view type
  */
-export abstract class KKStepBroker<G extends KKStepAgent<A>,O extends KKObserver<V>,A,V> extends KKBroker<G,O,A,V>{
+export abstract class KKStepBroker<G extends KKStepAgent<C,A>,O extends KKObserver<V>,C,A,V> extends KKBroker<G,O,C,A,V>{
     round = 0;
+    start(){
+        const endTick = ()=>{
+            if(this.running){
+                setTimeout(()=>{
+                    this.tick(endTick);
+                },0);
+            }
+        };
+        this.running = true;
+        endTick();
+    }
     tick(onTicked:()=>void){
         if(this.running){
             this.round++;
             // actions buffer
-            const actionMap = new Map<string,A>();
+            const actionMap = new KHashTable<string,A>(strcmp,strhash);
             // request actions
             const requestActionLoader = new KLoader();
-            const agentActionsMap = this.generateAgentActionsMap();
-            for(const [id,actions] of agentActionsMap){
+            const agentCommandsMap = this.generateAgentCommandsMap();
+            agentCommandsMap.foreach((id:string,commands:C[])=>{
                 const agent = this.agentMap.get(id);
                 if(agent){
-                    requestActionLoader.load((onDone)=>{
-                        setImmediate(()=>{
-                            agent.onRequestAction(actions,(action)=>{
+                    requestActionLoader.load((cb)=>{
+                        setTimeout(()=>{
+                            agent.onRequestAction(commands,(action)=>{
                                 actionMap.set(id,action);
-                                onDone();
+                                cb();
                             },);
-                        });
+                        },0);
                     });
                 }
-            }
+            });
             requestActionLoader.onDone(()=>{
                 //execute logic
                 this.execute(actionMap);
                 //update views
                 const sendViewsLoader = new KLoader();
                 const observerViewsMap = this.generateObserverViewsMap();
-                for(const [id,views] of observerViewsMap){
-                    sendViewsLoader.load((onDone)=>{
+                observerViewsMap.foreach((id:string,views:V[])=>{
+                    sendViewsLoader.load((cb)=>{
                         const observer = this.observerMap.get(id);
                         if(observer){
-                            setImmediate(()=>{
-                                observer.receiveViews(views,onDone);
-                            });
+                            setTimeout(()=>{
+                                observer.receiveViews(views,cb);
+                            },0);
                         }
                     });
-                }
+                });
                 //end tick
                 sendViewsLoader.onDone(onTicked);
                 sendViewsLoader.complete();
