@@ -119,7 +119,7 @@ export abstract class KKBroker<G extends KKAgent<C>,O extends KKObserver<V>,C,A,
     }
     abstract generateAgentCommandsMap():KMap<string,C[]>;
     abstract generateObserverViewsMap():KMap<string,V[]>;
-    abstract execute(actionMap:KMap<string,A>):boolean;
+    abstract execute(actionMap:KMap<string,A>):void;
 }
 
 /**
@@ -150,7 +150,8 @@ export abstract class KKStepBroker<G extends KKStepAgent<C,A>,O extends KKObserv
                 const agent = this.agentMap.get(id);
                 if(agent){
                     agent.updateCommands(commands);
-                    requests.push({id:id,request:agent.requestAction()});                }
+                    requests.push({id:id,request:agent.requestAction()});
+                }
             });
             // actions buffer
             const actionMap = new KHashTable<string,A>(strcmp,strhash);
