@@ -1,5 +1,17 @@
-import { KKGrid, KKP2D } from "../kk.js";
+import { addGridP3D, KKGrid, KKP2D, subGridP3D } from "../kk.js";
 import GridForm from "./kk-grid-form.js";
+
+function ceil(v1:number,v2:number){
+    v1 = Math.ceil(v1)|0;
+    v2 = Math.ceil(v2)|0;
+    return v1===v2?v1+1:v1<v2?v2:v1;
+}
+
+function floor(v1:number,v2:number){
+    v1 = Math.floor(v1)|0;
+    v2 = Math.floor(v2)|0;
+    return v1===v2?v1-1:v1<v2?v1:v2;
+}
 
 export default class GridFormRhomboid extends GridForm {
 
@@ -13,7 +25,7 @@ export default class GridFormRhomboid extends GridForm {
     toPixel(grid:KKGrid): KKP2D {
         return {
             x: (grid.x+grid.y)*this.halfWidth+grid.dx,
-            y: (grid.x-grid.y)*this.halfHeight+grid.y
+            y: (grid.x-grid.y)*this.halfHeight+grid.dy
         };
     }
 
@@ -61,17 +73,27 @@ export default class GridFormRhomboid extends GridForm {
 
     getRectGrids(x: number, y: number, width: number, height: number):KKGrid[] {
         const grids:KKGrid[] = [];
-        for(let oy = y+height; oy>y; oy-=this.halfHeight){
-            const grid0 = this.fromPixel({x:x,y:oy});
-            const grid1 = this.fromPixel({x:x+width-1,y:oy});
-            for(let d = 0; grid0.x+d+grid0.y+d<=grid1.x+grid1.y; d++){
-                grids.push({
-                    x: grid0.x+d,
-                    y: grid0.y+d,
-                    z: 0,
-                    dx: 0,
-                    dy: 0
-                });
+        const lt = this.fromPixel({x:x,y:y+height-1});
+        const rt = this.fromPixel({x:x+width-1,y:y+height-1});
+        const lb = this.fromPixel({x:x,y:y});
+        const rb = this.fromPixel({x:x+width-1,y:y});
+        const maxXsubY = ceil(lt.x-lt.y,rt.x-rt.y);
+        const minXaddY = floor(lt.x+lt.y,lb.x+lb.y);
+        const minXsubY = floor(lb.x-lb.y,rb.x-rb.y);
+        const maxXaddY = ceil(rt.x+rt.y,rb.x+rb.y);
+        for(let xSy = maxXsubY; xSy>=minXsubY; xSy--){
+            for(let xAy = minXaddY; xAy<=maxXaddY; xAy++){
+                const x2 = xAy+xSy;
+                const y2 = xAy-xSy;
+                if((x2&0x01)===0&&(y2&0x01)===0){
+                    grids.push({
+                        x: x2>>1,
+                        y: y2>>1,
+                        z: 0,
+                        dx: 0,
+                        dy: 0
+                    });
+                }
             }
         }
         return grids;

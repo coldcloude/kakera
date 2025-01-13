@@ -10,7 +10,7 @@ export default class GridFormOrthogonal extends GridForm {
     toPixel(grid:KKGrid): KKP2D {
         return {
             x: grid.x*this.tileWidth+grid.dx,
-            y: grid.y*this.tileHeight+grid.y
+            y: grid.y*this.tileHeight+grid.dy
         };
     }
 

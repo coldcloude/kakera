@@ -25,8 +25,8 @@ export default abstract class GridForm {
             x: grid.x+dg.x,
             y: grid.y+dg.y,
             z: grid.z+dg.z,
-            dx: grid.dx+dg.dx,
-            dy: grid.dy+dg.dy
+            dx: dg.dx,
+            dy: dg.dy
         };
     }
 
@@ -68,13 +68,5 @@ export default abstract class GridForm {
             dx: -grid2.dx,
             dy: -grid2.dy
         });
-    }
-
-    compareZIndex(grid1:KKGrid,grid2:KKGrid):number{
-        const pixel1 = this.toPixel(grid1);
-        const pixel2 = this.toPixel(grid2);
-        return pixel1.y===pixel2.y?
-            (pixel1.x<pixel2.x?-1:pixel1.x===pixel2.x?0:1):
-            (pixel1.y<pixel2.y?-1:1);
     }
 }
