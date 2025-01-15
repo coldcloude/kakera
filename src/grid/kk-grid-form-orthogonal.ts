@@ -20,7 +20,6 @@ export default class GridFormOrthogonal extends GridForm {
         return {
             x: gridX,
             y: gridY,
-            z: 0,
             dx: pixel.x-gridX*this.tileWidth,
             dy: pixel.y-gridY*this.tileHeight
         };
@@ -35,7 +34,6 @@ export default class GridFormOrthogonal extends GridForm {
                 grids.push({
                     x: gx,
                     y: gy,
-                    z: 0,
                     dx: 0,
                     dy: 0
                 });

@@ -1,17 +1,6 @@
-import { addGridP3D, KKGrid, KKP2D, subGridP3D } from "../kk.js";
+import { ceil, floor } from "@coldcloude/kai2";
+import { KKGrid, KKP2D } from "../kk.js";
 import GridForm from "./kk-grid-form.js";
-
-function ceil(v1:number,v2:number){
-    v1 = Math.ceil(v1)|0;
-    v2 = Math.ceil(v2)|0;
-    return v1===v2?v1+1:v1<v2?v2:v1;
-}
-
-function floor(v1:number,v2:number){
-    v1 = Math.floor(v1)|0;
-    v2 = Math.floor(v2)|0;
-    return v1===v2?v1-1:v1<v2?v1:v2;
-}
 
 export default class GridFormRhomboid extends GridForm {
 
@@ -30,44 +19,31 @@ export default class GridFormRhomboid extends GridForm {
     }
 
     fromPixel(pixel: KKP2D):KKGrid{
-        let halfRectX = Math.round(pixel.x/this.halfWidth)|0;
-        let halfRectY = Math.round(pixel.y/this.halfHeight)|0;
-        let offsetX = pixel.x-halfRectX*this.halfWidth;
-        let offsetY = pixel.y-halfRectY*this.halfHeight;
-        let gridX = (halfRectX+halfRectY)>>1;
-        let gridY = (halfRectX-halfRectY)>>1;
-        if(halfRectX+halfRectY-(gridX<<1)!==0){
-            //intersection
-            const rx = offsetX/this.halfWidth;
-            const ry = offsetY/this.halfHeight;
-            if(rx+ry<0){
-                if(rx-ry<0){
-                    halfRectX--;
-                }
-                else{
-                    halfRectY--;
-                }
+        let halfRectX = Math.floor(pixel.x/this.halfWidth)|0;
+        let halfRectY = Math.floor(pixel.y/this.halfHeight)|0;
+        const rx = (pixel.x-halfRectX*this.halfWidth)/this.halfWidth;
+        const ry = (pixel.y-halfRectY*this.halfHeight)/this.halfHeight;
+        if(((halfRectX+halfRectY)&0x01)===0){
+            //even
+            if(rx+ry>=1){
+                halfRectX++;
+                halfRectY++;
+            }
+        }else{
+            //odd
+            if(rx-ry<0){
+                halfRectY++;
             }
             else{
-                if(rx-ry<0){
-                    halfRectY++;
-                }
-                else{
-                    halfRectX++;
-                }
+                halfRectX++;
             }
-            //re calculate
-            offsetX = pixel.x-halfRectX*this.halfWidth;
-            offsetY = pixel.y-halfRectY*this.halfHeight;
-            gridX = (halfRectX+halfRectY)>>1;
-            gridY = (halfRectX-halfRectY)>>1;
         }
+        //re calculate
         return {
-            x: gridX,
-            y: gridY,
-            z: 0,
-            dx: offsetX,
-            dy: offsetY
+            x: (halfRectX+halfRectY)>>1,
+            y: (halfRectX-halfRectY)>>1,
+            dx: pixel.x-halfRectX*this.halfWidth,
+            dy: pixel.y-halfRectY*this.halfHeight
         };
     }
 
@@ -89,7 +65,6 @@ export default class GridFormRhomboid extends GridForm {
                     grids.push({
                         x: x2>>1,
                         y: y2>>1,
-                        z: 0,
                         dx: 0,
                         dy: 0
                     });

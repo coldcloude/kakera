@@ -24,7 +24,6 @@ export default abstract class GridForm {
         return {
             x: grid.x+dg.x,
             y: grid.y+dg.y,
-            z: grid.z+dg.z,
             dx: dg.dx,
             dy: dg.dy
         };
@@ -40,21 +39,18 @@ export default abstract class GridForm {
     add(grid1:KKGrid,grid2:KKGrid):KKGrid{
         let x = grid1.x+grid2.x;
         let y = grid1.y+grid2.y;
-        let z = grid1.z+grid2.z;
         let dx = grid1.dx+grid2.dx;
         let dy = grid1.dy+grid2.dy;
         if(dx!=0||dy!=0){
             const dg = this.fromPixel({x:dx,y:dy});
             x += dg.x;
             y += dg.y;
-            z += dg.z;
             dx = dg.dx;
             dy = dg.dy;
         }
         return {
             x: x,
             y: y,
-            z: z,
             dx: dx,
             dy: dy
         };
@@ -64,7 +60,6 @@ export default abstract class GridForm {
         return this.add(grid1,{
             x: -grid2.x,
             y: -grid2.y,
-            z: -grid2.z,
             dx: -grid2.dx,
             dy: -grid2.dy
         });
