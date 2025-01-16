@@ -1,13 +1,3 @@
-export type KKP2D = {
-    x: Readonly<number>,
-    y: Readonly<number>
-};
-
-export type KKGrid = KKP2D&{
-    dx: Readonly<number>,
-    dy: Readonly<number>
-};
-
 export type KKSpriteFrameInfo = {
     id: string,
     positionX: number,
@@ -63,12 +53,14 @@ export type KKMapInfo = {
     tiles: KKMapTileInfo[],
     objects: KKMapTileInfo[]
 };
+export type KKP2D = {
+    x: Readonly<number>,
+    y: Readonly<number>
+};
 
-export const KK_ZERO:KKGrid = {
+export const KK_ZERO:KKP2D = {
     x: 0,
     y: 0,
-    dx: 0,
-    dy: 0,
 };
 
 export function addP2D(p1:KKP2D,p2:KKP2D){
@@ -82,22 +74,6 @@ export function subP2D(p1:KKP2D,p2:KKP2D){
     return addP2D(p1,{
         x: -p2.x,
         y: -p2.y
-    });
-}
-
-export function addGridP2D(g:KKGrid,p:KKP2D){
-    return {
-        x: g.x+p.x,
-        y: g.y+p.y,
-        dx: g.dx,
-        dy: g.dy
-    };
-}
-
-export function subGridP2D(g:KKGrid,p:KKP2D){
-    return addGridP2D(g,{
-        x: -p.x,
-        y: -p.y
     });
 }
 

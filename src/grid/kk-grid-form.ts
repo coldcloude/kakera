@@ -1,4 +1,4 @@
-import { KKGrid, KKP2D } from "../kk.js";
+import { KKP2D } from "../kk.js";
 
 export default abstract class GridForm {
 
@@ -12,61 +12,26 @@ export default abstract class GridForm {
 
     abstract toPixel(grid:KKP2D):KKP2D;
     
-    abstract fromPixel(pixel:KKP2D):KKGrid;
+    abstract fromPixel(pixel:KKP2D):[KKP2D,KKP2D];
 
-    abstract getRectGrids(x:number,y:number,width:number,height:number):KKGrid[];
+    abstract getRectGrids(x:number,y:number,width:number,height:number):KKP2D[];
 
     abstract getLinks(grid:KKP2D,valid:(x:number,y:number)=>boolean):[KKP2D,number][];
 
     abstract getDistance(src:KKP2D,dst:KKP2D):number;
 
-    forward(grid:KKP2D,offset:KKP2D):KKGrid{
-        const dg = this.fromPixel({
-            x: offset.x+getDx(grid),
-            y: offset.y+getDy(grid)
+    combine(grid:KKP2D,pixel:KKP2D):[KKP2D,KKP2D]{
+        const [dg,dp] = this.fromPixel({
+            x: pixel.x,
+            y: pixel.y
         });
-        return {
+        return [{
             x: grid.x+dg.x,
-            y: grid.y+dg.y,
-            dx: dg.dx,
-            dy: dg.dy
-        };
-    }
-
-    backward(grid:KKP2D,offset:KKP2D):KKGrid{
-        return this.forward(grid,{
-            x: -offset.x,
-            y: -offset.y
-        });
-    }
-
-    add(grid1:KKP2D,grid2:KKP2D):KKGrid{
-        let x = grid1.x+grid2.x;
-        let y = grid1.y+grid2.y;
-        let dx = getDx(grid1)+getDx(grid2);
-        let dy = getDy(grid1)+getDy(grid2);
-        if(dx!=0||dy!=0){
-            const dg = this.fromPixel({x:dx,y:dy});
-            x += dg.x;
-            y += dg.y;
-            dx = dg.dx;
-            dy = dg.dy;
-        }
-        return {
-            x: x,
-            y: y,
-            dx: dx,
-            dy: dy
-        };
-    }
-
-    sub(grid1:KKP2D,grid2:KKP2D):KKGrid{
-        return this.add(grid1,{
-            x: -grid2.x,
-            y: -grid2.y,
-            dx: -getDx(grid2),
-            dy: -getDy(grid2),
-        } as KKGrid);
+            y: grid.y+dg.y
+        },{
+            x: dp.x,
+            y: dp.y
+        }];
     }
 }
 
@@ -111,12 +76,4 @@ export function orthogonalDistance(src:KKP2D,dst:KKP2D,d1:number,d2:number,d3:nu
         //different direction, use d2
         return amin*d2+(amax-amin)*d1;
     }
-}
-
-export function getDx(grid:KKP2D){
-    return Object.prototype.hasOwnProperty.call(grid,"dx")?(grid as KKGrid).dx:0;
-}
-
-export function getDy(grid:KKP2D){
-    return Object.prototype.hasOwnProperty.call(grid,"dy")?(grid as KKGrid).dy:0;
 }

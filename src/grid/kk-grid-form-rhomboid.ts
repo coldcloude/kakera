@@ -1,6 +1,6 @@
 import { ceil, floor } from "@coldcloude/kai2";
-import { KKGrid, KKP2D } from "../kk.js";
-import GridForm, { getDx, getDy, orthogonalDistance, orthogonalLinks } from "./kk-grid-form.js";
+import { KKP2D } from "../kk.js";
+import GridForm, { orthogonalDistance, orthogonalLinks } from "./kk-grid-form.js";
 
 const D1 = 10;
 const D2 = 14;
@@ -17,12 +17,12 @@ export default class GridFormRhomboid extends GridForm {
 
     toPixel(grid:KKP2D): KKP2D {
         return {
-            x: (grid.x+grid.y)*this.halfWidth+getDx(grid),
-            y: (grid.x-grid.y)*this.halfHeight+getDy(grid)
+            x: (grid.x+grid.y)*this.halfWidth,
+            y: (grid.x-grid.y)*this.halfHeight
         };
     }
 
-    fromPixel(pixel: KKP2D):KKGrid{
+    fromPixel(pixel: KKP2D):[KKP2D,KKP2D]{
         let halfRectX = Math.floor(pixel.x/this.halfWidth)|0;
         let halfRectY = Math.floor(pixel.y/this.halfHeight)|0;
         const rx = (pixel.x-halfRectX*this.halfWidth)/this.halfWidth;
@@ -43,20 +43,21 @@ export default class GridFormRhomboid extends GridForm {
             }
         }
         //re calculate
-        return {
+        return [{
             x: (halfRectX+halfRectY)>>1,
-            y: (halfRectX-halfRectY)>>1,
-            dx: pixel.x-halfRectX*this.halfWidth,
-            dy: pixel.y-halfRectY*this.halfHeight
-        };
+            y: (halfRectX-halfRectY)>>1
+        },{
+            x: pixel.x-halfRectX*this.halfWidth,
+            y: pixel.y-halfRectY*this.halfHeight
+        }];
     }
 
-    getRectGrids(x: number, y: number, width: number, height: number):KKGrid[] {
-        const grids:KKGrid[] = [];
-        const lt = this.fromPixel({x:x,y:y+height-1});
-        const rt = this.fromPixel({x:x+width-1,y:y+height-1});
-        const lb = this.fromPixel({x:x,y:y});
-        const rb = this.fromPixel({x:x+width-1,y:y});
+    getRectGrids(x: number, y: number, width: number, height: number): KKP2D[] {
+        const grids:KKP2D[] = [];
+        const lt = this.fromPixel({x:x,y:y+height-1})[0];
+        const rt = this.fromPixel({x:x+width-1,y:y+height-1})[0];
+        const lb = this.fromPixel({x:x,y:y})[0];
+        const rb = this.fromPixel({x:x+width-1,y:y})[0];
         const maxXsubY = ceil(lt.x-lt.y,rt.x-rt.y);
         const minXaddY = floor(lt.x+lt.y,lb.x+lb.y);
         const minXsubY = floor(lb.x-lb.y,rb.x-rb.y);
@@ -68,9 +69,7 @@ export default class GridFormRhomboid extends GridForm {
                 if((x2&0x01)===0&&(y2&0x01)===0){
                     grids.push({
                         x: x2>>1,
-                        y: y2>>1,
-                        dx: 0,
-                        dy: 0
+                        y: y2>>1
                     });
                 }
             }
