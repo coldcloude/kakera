@@ -1,6 +1,10 @@
 import { ceil, floor } from "@coldcloude/kai2";
 import { KKGrid, KKP2D } from "../kk.js";
-import GridForm from "./kk-grid-form.js";
+import GridForm, { getDx, getDy, orthogonalDistance, orthogonalLinks } from "./kk-grid-form.js";
+
+const D1 = 10;
+const D2 = 10;
+const D3 = 17;
 
 export default class GridFormHexagonal extends GridForm {
 
@@ -18,10 +22,10 @@ export default class GridFormHexagonal extends GridForm {
         this.halfSide = this.tileSide>>1;
     }
 
-    toPixel(grid:KKGrid): KKP2D {
+    toPixel(grid:KKP2D): KKP2D {
         return {
-            x: grid.x*(this.halfWidth+this.halfSide)+grid.dx,
-            y: (grid.x-(grid.y<<1))*this.halfHeight+grid.dy
+            x: (grid.x+grid.y)*(this.halfWidth+this.halfSide)+getDx(grid),
+            y: (grid.x-grid.y)*this.halfHeight+getDy(grid)
         };
     }
 
@@ -63,7 +67,7 @@ export default class GridFormHexagonal extends GridForm {
         }
         //re calculate
         return {
-            x: halfRectX,
+            x: (halfRectX+halfRectY)>>1,
             y: (halfRectX-halfRectY)>>1,
             dx: pixel.x-halfRectX*this.halfWidth,
             dy: pixel.y-halfRectY*this.halfHeight
@@ -94,5 +98,13 @@ export default class GridFormHexagonal extends GridForm {
             }
         }
         return grids;
+    }
+
+    getLinks(grid: KKP2D, valid:(x:number,y:number)=>boolean): [KKP2D,number][] {
+        return orthogonalLinks(grid,valid,D1,D2,D3);
+    }
+
+    getDistance(src: KKP2D, dst: KKP2D): number {
+        return orthogonalDistance(src,dst,D1,D2,D3);
     }
 }

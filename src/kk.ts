@@ -94,7 +94,7 @@ export function addGridP2D(g:KKGrid,p:KKP2D){
     };
 }
 
-export function subGridP3D(g:KKGrid,p:KKP2D){
+export function subGridP2D(g:KKGrid,p:KKP2D){
     return addGridP2D(g,{
         x: -p.x,
         y: -p.y
@@ -103,6 +103,14 @@ export function subGridP3D(g:KKGrid,p:KKP2D){
 
 export function compareZIndex(p1:KKP2D,p2:KKP2D){
     return p1.y===p2.y?(p1.x<p2.x?-1:p1.x===p2.x?0:1):(p1.y<p2.y?1:-1);
+}
+
+export function hashP2D(p:KKP2D){
+    return p.x^p.y;
+}
+
+export function showP2D(p:KKP2D){
+    return "("+p.x+","+p.y+")";
 }
 
 export type KKHandler = ()=>void;

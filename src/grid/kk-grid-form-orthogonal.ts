@@ -1,5 +1,9 @@
 import { KKGrid, KKP2D } from "../kk.js";
-import GridForm from "./kk-grid-form.js";
+import GridForm, { getDx, getDy, orthogonalDistance, orthogonalLinks } from "./kk-grid-form.js";
+
+const D1 = 10;
+const D2 = 14;
+const D3 = 14;
 
 export default class GridFormOrthogonal extends GridForm {
 
@@ -7,10 +11,10 @@ export default class GridFormOrthogonal extends GridForm {
         super(tileWidth,tileHeight);
     }
 
-    toPixel(grid:KKGrid): KKP2D {
+    toPixel(grid:KKP2D):KKP2D{
         return {
-            x: grid.x*this.tileWidth+grid.dx,
-            y: grid.y*this.tileHeight+grid.dy
+            x: grid.x*this.tileWidth+getDx(grid),
+            y: grid.y*this.tileHeight+getDy(grid)
         };
     }
 
@@ -40,5 +44,13 @@ export default class GridFormOrthogonal extends GridForm {
             }
         }
         return grids;
+    }
+
+    getLinks(grid: KKP2D, valid:(x:number,y:number)=>boolean): [KKP2D,number][] {
+        return orthogonalLinks(grid,valid,D1,D2,D3);
+    }
+
+    getDistance(src: KKP2D, dst: KKP2D): number {
+        return orthogonalDistance(src,dst,D1,D2,D3);
     }
 }
