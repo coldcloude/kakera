@@ -1,9 +1,9 @@
-import { KKP2D } from "../kk.js";
-import GridForm, { orthogonalDistance, orthogonalLinks } from "./kk-grid-form.js";
+import { KKP2D, KKSize } from "../kk.js";
+import { GridForm, orthogonalDistance, orthogonalLinks } from "./kk-grid-form.js";
 
-const D1 = 10;
-const D2 = 14;
-const D3 = 14;
+const D_NEIGHBOR = 10;
+const D_DIAGONAL = 14;
+const VC_DIAGONAL = 2;
 
 export default class GridFormOrthogonal extends GridForm {
 
@@ -30,9 +30,9 @@ export default class GridFormOrthogonal extends GridForm {
         }];
     }
 
-    getRectGrids(x: number, y: number, width: number, height: number):KKP2D[]{
-        const grid0 = this.fromPixel({x:x,y:y})[0];
-        const grid1 = this.fromPixel({x:x+width,y:y+height})[0];
+    getRectGrids(o: KKP2D, s: KKSize): KKP2D[] {
+        const grid0 = this.fromPixel({x:o.x,y:o.y})[0];
+        const grid1 = this.fromPixel({x:o.x+s.width,y:o.y+s.height})[0];
         const grids:KKP2D[] = [];
         for(let gy = grid1.y; gy>=grid0.y; gy--){
             for(let gx = grid0.x; gx<=grid1.x; gx++){
@@ -45,11 +45,21 @@ export default class GridFormOrthogonal extends GridForm {
         return grids;
     }
 
-    getLinks(grid: KKP2D, valid:(x:number,y:number)=>boolean): [KKP2D,number][] {
-        return orthogonalLinks(grid,valid,D1,D2,D3);
+    getLinks(grid: KKP2D, valid:(p:KKP2D)=>boolean): [KKP2D,number][] {
+        return orthogonalLinks(grid,valid,D_NEIGHBOR,D_DIAGONAL,D_DIAGONAL,VC_DIAGONAL,VC_DIAGONAL);
     }
 
     getDistance(src: KKP2D, dst: KKP2D): number {
-        return orthogonalDistance(src,dst,D1,D2,D3);
+        return orthogonalDistance(src,dst,D_NEIGHBOR,D_DIAGONAL,D_DIAGONAL);
+    }
+
+    getBorderPixels(grid:KKP2D):KKP2D[]{
+        const p = this.toPixel(grid);
+        return [
+            {x:p.x+this.halfWidth,y:p.y+this.halfHeight},
+            {x:p.x-this.halfWidth,y:p.y+this.halfHeight},
+            {x:p.x-this.halfWidth,y:p.y-this.halfHeight},
+            {x:p.x+this.halfWidth,y:p.y-this.halfHeight}
+        ];
     }
 }

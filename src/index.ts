@@ -1,8 +1,7 @@
 export * from "./kk.js";
 export * from "./kakera.js";
 
-import GridForm from "./grid/kk-grid-form.js";
-export { GridForm };
+export * from "./grid/kk-grid-form.js";
 
 import GridFormOrthogonal from "./grid/kk-grid-form-orthogonal.js";
 export { GridFormOrthogonal };

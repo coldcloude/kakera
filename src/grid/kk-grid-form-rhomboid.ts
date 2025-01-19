@@ -1,19 +1,16 @@
 import { ceil, floor } from "@coldcloude/kai2";
-import { KKP2D } from "../kk.js";
-import GridForm, { orthogonalDistance, orthogonalLinks } from "./kk-grid-form.js";
+import { KKP2D, KKSize } from "../kk.js";
+import { GridForm, orthogonalDistance, orthogonalLinks } from "./kk-grid-form.js";
 
-const D1 = 10;
-const D2 = 14;
-const D3 = 14;
+const D_NEIGHBOR = 10;
+const D_DIAGONAL = 14;
+const VC_DIAGONAL = 2;
 
 export default class GridFormRhomboid extends GridForm {
 
     constructor(tileWidth:number,tileHeight:number){
         super(tileWidth,tileHeight);
     }
-
-    halfWidth = this.tileWidth>>1;
-    halfHeight = this.tileHeight>>1;
 
     toPixel(grid:KKP2D): KKP2D {
         return {
@@ -52,12 +49,12 @@ export default class GridFormRhomboid extends GridForm {
         }];
     }
 
-    getRectGrids(x: number, y: number, width: number, height: number): KKP2D[] {
+    getRectGrids(o: KKP2D, s: KKSize): KKP2D[] {
         const grids:KKP2D[] = [];
-        const lt = this.fromPixel({x:x,y:y+height-1})[0];
-        const rt = this.fromPixel({x:x+width-1,y:y+height-1})[0];
-        const lb = this.fromPixel({x:x,y:y})[0];
-        const rb = this.fromPixel({x:x+width-1,y:y})[0];
+        const lt = this.fromPixel({x:o.x,y:o.y+s.height-1})[0];
+        const rt = this.fromPixel({x:o.x+s.width-1,y:o.y+s.height-1})[0];
+        const lb = this.fromPixel({x:o.x,y:o.y})[0];
+        const rb = this.fromPixel({x:o.x+s.width-1,y:o.y})[0];
         const maxXsubY = ceil(lt.x-lt.y,rt.x-rt.y);
         const minXaddY = floor(lt.x+lt.y,lb.x+lb.y);
         const minXsubY = floor(lb.x-lb.y,rb.x-rb.y);
@@ -77,11 +74,21 @@ export default class GridFormRhomboid extends GridForm {
         return grids;
     }
 
-    getLinks(grid: KKP2D, valid:(x:number,y:number)=>boolean): [KKP2D,number][] {
-        return orthogonalLinks(grid,valid,D1,D2,D3);
+    getLinks(grid: KKP2D, valid:(p:KKP2D)=>boolean): [KKP2D,number][] {
+        return orthogonalLinks(grid,valid,D_NEIGHBOR,D_DIAGONAL,D_DIAGONAL,VC_DIAGONAL,VC_DIAGONAL);
     }
 
     getDistance(src: KKP2D, dst: KKP2D): number {
-        return orthogonalDistance(src,dst,D1,D2,D3);
+        return orthogonalDistance(src,dst,D_NEIGHBOR,D_DIAGONAL,D_DIAGONAL);
+    }
+
+    getBorderPixels(grid:KKP2D):KKP2D[]{
+        const p = this.toPixel(grid);
+        return [
+            {x:p.x+this.halfWidth,y:p.y},
+            {x:p.x,y:p.y+this.halfHeight},
+            {x:p.x-this.halfWidth,y:p.y},
+            {x:p.x,y:p.y-this.halfHeight}
+        ];
     }
 }

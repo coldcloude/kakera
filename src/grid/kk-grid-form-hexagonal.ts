@@ -1,24 +1,21 @@
 import { ceil, floor } from "@coldcloude/kai2";
-import { KKP2D } from "../kk.js";
-import GridForm, { orthogonalDistance, orthogonalLinks } from "./kk-grid-form.js";
+import { KKP2D, KKSize } from "../kk.js";
+import { GridForm, orthogonalDistance, orthogonalLinks } from "./kk-grid-form.js";
 
-const D1 = 10;
-const D2 = 10;
-const D3 = 17;
+const D_NEIGHBOR = 10;
+const D_DIAGONAL = 17;
+const VC_NEIGHBOR = 0;
+const VC_DIAGONAL = 2;
 
 export default class GridFormHexagonal extends GridForm {
 
-    tileSide:number;
+    readonly tileSide:number;
 
-    halfWidth:number;
-    halfHeight:number;
-    halfSide:number;
+    readonly halfSide:number;
 
     constructor(tileWidth:number,tileHeight:number,tileSide:number){
         super(tileWidth,tileHeight);
         this.tileSide = tileSide;
-        this.halfWidth = this.tileWidth>>1;
-        this.halfHeight = this.tileHeight>>1;
         this.halfSide = this.tileSide>>1;
     }
 
@@ -75,18 +72,18 @@ export default class GridFormHexagonal extends GridForm {
         }];
     }
 
-    getRectGrids(x: number, y: number, width: number, height: number):KKP2D[] {
+    getRectGrids(o: KKP2D, s: KKSize): KKP2D[] {
         const grids:KKP2D[] = [];
-        const lt = this.fromPixel({x:x,y:y+height-1})[0];
-        const rt = this.fromPixel({x:x+width-1,y:y+height-1})[0];
-        const lb = this.fromPixel({x:x,y:y})[0];
-        const rb = this.fromPixel({x:x+width-1,y:y})[0];
+        const lt = this.fromPixel({x:o.x,y:o.y+s.height-1})[0];
+        const rt = this.fromPixel({x:o.x+s.width-1,y:o.y+s.height-1})[0];
+        const lb = this.fromPixel({x:o.x,y:o.y})[0];
+        const rb = this.fromPixel({x:o.x+s.width-1,y:o.y})[0];
         const maxXsub2Y = ceil(lt.x-(lt.y<<1),rt.x-(rt.y<<1));
         const minX = floor(lt.x,lb.x);
         const minXsub2Y = floor(lb.x-(lb.y<<1),rb.x-(rb.y<<1));
         const maxX = ceil(rt.x,rb.x);
         for(let xS2y = maxXsub2Y; xS2y>=minXsub2Y; xS2y--){
-            for(let xx = minX; xx<=maxX; x++){
+            for(let xx = minX; xx<=maxX; xx++){
                 const y2 = xx-xS2y;
                 if((y2&0x01)===0){
                     grids.push({
@@ -99,11 +96,23 @@ export default class GridFormHexagonal extends GridForm {
         return grids;
     }
 
-    getLinks(grid: KKP2D, valid:(x:number,y:number)=>boolean): [KKP2D,number][] {
-        return orthogonalLinks(grid,valid,D1,D2,D3);
+    getLinks(grid: KKP2D, valid:(p:KKP2D)=>boolean): [KKP2D,number][] {
+        return orthogonalLinks(grid,valid,D_NEIGHBOR,D_NEIGHBOR,D_DIAGONAL,VC_NEIGHBOR,VC_DIAGONAL);
     }
 
     getDistance(src: KKP2D, dst: KKP2D): number {
-        return orthogonalDistance(src,dst,D1,D2,D3);
+        return orthogonalDistance(src,dst,D_NEIGHBOR,D_NEIGHBOR,D_DIAGONAL);
+    }
+
+    getBorderPixels(grid:KKP2D):KKP2D[]{
+        const p = this.toPixel(grid);
+        return [
+            {x:p.x+this.halfWidth,y:p.y},
+            {x:p.x+this.halfSide,y:p.y+this.halfHeight},
+            {x:p.x-this.halfSide,y:p.y+this.halfHeight},
+            {x:p.x-this.halfWidth,y:p.y},
+            {x:p.x-this.halfSide,y:p.y-this.halfHeight},
+            {x:p.x+this.halfSide,y:p.y-this.halfHeight}
+        ];
     }
 }

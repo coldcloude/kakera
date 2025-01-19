@@ -53,14 +53,25 @@ export type KKMapInfo = {
     tiles: KKMapTileInfo[],
     objects: KKMapTileInfo[]
 };
+
 export type KKP2D = {
-    x: Readonly<number>,
-    y: Readonly<number>
+    readonly x: number,
+    readonly y: number
+};
+
+export type KKSize = {
+    readonly width: number,
+    readonly height: number,
 };
 
 export const KK_ZERO:KKP2D = {
     x: 0,
     y: 0,
+};
+
+export const UNIT_SIZE:KKSize = {
+    width: 1,
+    height: 1
 };
 
 export function addP2D(p1:KKP2D,p2:KKP2D){
@@ -89,15 +100,10 @@ export function showP2D(p:KKP2D){
     return "("+p.x+","+p.y+")";
 }
 
-export type KKHandler = ()=>void;
+export type KKCallback = ()=>void;
 
-export type KKNumHandler = (v:number)=>void;
+export type KKHandler<T> = (v:T)=>void;
 
-export type KKP2DHandler = (pos:KKP2D)=>void;
+export type KKRetriever<R> = ()=>R;
 
-export type KKDirectionActionHandler = (param:{
-    direction?: number,
-    action?: number
-})=>void;
-
-export type KKP2DTransformer = (pos:KKP2D)=>KKP2D;
+export type KKTransformer<T,R> = (v:T)=>R;
