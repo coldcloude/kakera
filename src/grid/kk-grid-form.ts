@@ -33,6 +33,12 @@ export abstract class GridForm {
 
     abstract getBorderPixels(grid:KKP2D):KKP2D[];
 
+    abstract getAreaGrids(centerGrid:KKP2D,radiusGrid:number):KKP2D[];
+
+    abstract getGridLinks(grid:KKP2D,valid:(p:KKP2D)=>boolean):[KKP2D,number][];
+
+    abstract getGridDistance(src:KKP2D,dst:KKP2D):number;
+
     combine(grid:KKP2D,pixel:KKP2D):[KKP2D,KKP2D]{
         const [dg,dp] = this.fromPixel({
             x: pixel.x,
@@ -192,4 +198,63 @@ export function orthogonalDistance(src:KKP2D,dst:KKP2D,dNear:number,dOppo:number
         //different direction, use d2
         return amin*dOppo+(amax-amin)*dNear;
     }
+}
+
+export function orthogonalAreaGrids(centerGrid:KKP2D,radiusGrid:number):KKP2D[]{
+    const area:KKP2D[] = [];
+    area.push(centerGrid);
+    const cx = centerGrid.x;
+    const cy = centerGrid.y;
+    for(let r=1; r<=radiusGrid; r++){
+        //left
+        for(let d=0; d<radiusGrid; d++){
+            area.push({
+                x: cx+r-d,
+                y: cy+d
+            });
+        }
+        //down
+        for(let d=0; d<radiusGrid; d++){
+            area.push({
+                x: cx-d,
+                y: cy+r-d
+            });
+        }
+        //right
+        for(let d=0; d<radiusGrid; d++){
+            area.push({
+                x: cx-r+d,
+                y: cy-d
+            });
+        }
+        //up
+        for(let d=0; d<radiusGrid; d++){
+            area.push({
+                x: cx+d,
+                y: cy-r+d
+            });
+        }
+    }
+    return area;
+}
+
+export function orthogonalGridLinks(grid:KKP2D,valid:(p:KKP2D)=>boolean):[KKP2D,number][]{
+    const links:[KKP2D,number][] = [];
+    for(const [dx,dy] of [[1,0],[0,1],[-1,0],[0,-1]]){
+        const xx = grid.x+dx;
+        const yy = grid.y+dy;
+        const g = {x:xx,y:yy};
+        if(valid(g)){
+            links.push([g,1]);
+        }
+    }
+    return links;
+}
+
+export function orthogonalGridDistance(src:KKP2D,dst:KKP2D):number{
+    const dx = dst.x-src.x;
+    const dy = dst.y-src.y;
+    const adx = Math.abs(dx)|0;
+    const ady = Math.abs(dy)|0;
+    return adx+ady;
 }

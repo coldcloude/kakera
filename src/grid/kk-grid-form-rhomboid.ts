@@ -1,6 +1,6 @@
 import { ceil, floor } from "@coldcloude/kai2";
 import { KKP2D, KKSize } from "../kk.js";
-import { GridForm, orthogonalDistance, orthogonalLinks } from "./kk-grid-form.js";
+import { GridForm, orthogonalAreaGrids, orthogonalDistance, orthogonalGridDistance, orthogonalGridLinks, orthogonalLinks } from "./kk-grid-form.js";
 
 const D_NEIGHBOR = 10;
 const D_DIAGONAL = 14;
@@ -90,5 +90,17 @@ export default class GridFormRhomboid extends GridForm {
             {x:p.x-this.halfWidth,y:p.y},
             {x:p.x,y:p.y-this.halfHeight}
         ];
+    }
+
+    getAreaGrids(centerGrid:KKP2D,radiusGrid:number):KKP2D[]{
+        return orthogonalAreaGrids(centerGrid,radiusGrid);
+    }
+
+    getGridLinks(grid:KKP2D,valid:(p:KKP2D)=>boolean):[KKP2D,number][]{
+        return orthogonalGridLinks(grid,valid);
+    }
+
+    getGridDistance(src:KKP2D,dst:KKP2D):number{
+        return orthogonalGridDistance(src,dst);
     }
 }

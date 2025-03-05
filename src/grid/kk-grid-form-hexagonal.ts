@@ -115,4 +115,84 @@ export default class GridFormHexagonal extends GridForm {
             {x:p.x+this.halfSide,y:p.y-this.halfHeight}
         ];
     }
+
+    getAreaGrids(centerGrid:KKP2D,radiusGrid:number):KKP2D[]{
+        const area:KKP2D[] = [];
+        area.push(centerGrid);
+        const cx = centerGrid.x;
+        const cy = centerGrid.y;
+        for(let r=1; r<=radiusGrid; r++){
+            //left up
+            for(let d=0; d<radiusGrid; d++){
+                area.push({
+                    x: cx+r-d,
+                    y: cy+d
+                });
+            }
+            //left down
+            for(let d=0; d<radiusGrid; d++){
+                area.push({
+                    x: cx-d,
+                    y: cy+r
+                });
+            }
+            //down
+            for(let d=0; d<radiusGrid; d++){
+                area.push({
+                    x: cx-r,
+                    y: cy+r-d
+                });
+            }
+            //right down
+            for(let d=0; d<radiusGrid; d++){
+                area.push({
+                    x: cx-r+d,
+                    y: cy-d
+                });
+            }
+            //right up
+            for(let d=0; d<radiusGrid; d++){
+                area.push({
+                    x: cx+d,
+                    y: cy-r
+                });
+            }
+            //up
+            for(let d=0; d<radiusGrid; d++){
+                area.push({
+                    x: cx+r,
+                    y: cy-r+d
+                });
+            }
+        }
+        return area;
+    }
+
+    getGridLinks(grid:KKP2D,valid:(p:KKP2D)=>boolean):[KKP2D,number][]{
+        const links:[KKP2D,number][] = [];
+        for(const [dx,dy] of [[1,0],[0,1],[-1,1],[-1,0],[0,-1],[1,-1]]){
+            const xx = grid.x+dx;
+            const yy = grid.y+dy;
+            const g = {x:xx,y:yy};
+            if(valid(g)){
+                links.push([g,1]);
+            }
+        }
+        return links;
+    }
+
+    getGridDistance(src:KKP2D,dst:KKP2D):number{
+        const dx = dst.x-src.x;
+        const dy = dst.y-src.y;
+        const adx = Math.abs(dx)|0;
+        const ady = Math.abs(dy)|0;
+        if(dx>=0&&dy>=0||dx<=0&&dy<=0){
+            //same direction
+            return adx+ady;
+        }
+        else{
+            //different direction, use d2
+            return Math.max(adx,ady);
+        }
+    }
 }
