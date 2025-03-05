@@ -1,7 +1,7 @@
-import { KAVLTree, KHashTable, numcmp } from "@coldcloude/kai2";
-import { compareZIndex, hashP2D, KKP2D, KKSize } from "../kk.js";
+import { KNumTree } from "@coldcloude/kai2";
+import { compareZIndex, KKP2D, KKP2DTable, KKSize } from "../kk.js";
 
-export type GridEdge = KAVLTree<number,{
+export type GridEdge = KNumTree<{
     readonly min: number,
     readonly max: number
 }>;
@@ -54,7 +54,7 @@ export abstract class GridForm {
     }
 
     edge(grid:KKP2D,size:KKSize):GridEdge{
-        const map = new KAVLTree<number,{readonly min: number,readonly max: number}>(numcmp);
+        const map = new KNumTree<{readonly min: number,readonly max: number}>();
         for(let dy=0; dy<size.height; dy++){
             for(let dx=0; dx<size.width; dx++){
                 const g = {x:grid.x+dx,y:grid.y+dy};
@@ -145,7 +145,7 @@ export abstract class GridForm {
 
 export function orthogonalLinks(grid:KKP2D,valid:(p:KKP2D)=>boolean,dNear:number,dOppo:number,dSame:number,vcOppo:number,vcSame:number):[KKP2D,number][]{
     const links:[KKP2D,number][] = [];
-    const validCount = new KHashTable<KKP2D,number>(compareZIndex,hashP2D);
+    const validCount = new KKP2DTable<number>();
     for(const [dx,dy] of [[1,0],[0,1],[-1,0],[0,-1]]){
         const xx = grid.x+dx;
         const yy = grid.y+dy;

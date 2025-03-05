@@ -1,5 +1,5 @@
-import { KAVLTree, KHashTable, KMap, KPair, numcmp } from "@coldcloude/kai2";
-import { compareZIndex, hashP2D, KKP2D } from "./kk.js";
+import { KMap, KNumTree, KPair } from "@coldcloude/kai2";
+import { compareZIndex, KKP2D, KKP2DTable, KKP2DTree } from "./kk.js";
 
 export type KKRoute = {
     path: KKP2D[],
@@ -7,8 +7,8 @@ export type KKRoute = {
 };
 
 export function dijkstra(startNode:KKP2D, getLinks:(src:KKP2D)=>[KKP2D,number][]):KMap<KKP2D,KKRoute>{
-    const closeMap = new KHashTable<KKP2D,KKRoute>(compareZIndex,hashP2D);
-    const openMap = new KHashTable<KKP2D,KKRoute>(compareZIndex,hashP2D);
+    const closeMap = new KKP2DTable<KKRoute>();
+    const openMap = new KKP2DTable<KKRoute>();
     openMap.set(startNode,{
         path: [],
         distance: 0
@@ -54,15 +54,15 @@ export function dijkstra(startNode:KKP2D, getLinks:(src:KKP2D)=>[KKP2D,number][]
 }
 
 export function aStar(startNode:KKP2D, targetNode:KKP2D, getLinks:(src:KKP2D)=>[KKP2D,number][], calcRange:(src:KKP2D,dst:KKP2D)=>number, limit:number):KKRoute{
-    const closeMap = new KHashTable<KKP2D,KKRoute>(compareZIndex,hashP2D);
-    const openMap = new KAVLTree<number,KAVLTree<KKP2D,KKRoute>>(numcmp);
-    const fMap = new KHashTable<KKP2D,number>(compareZIndex,hashP2D);
+    const closeMap = new KKP2DTable<KKRoute>();
+    const openMap = new KNumTree<KKP2DTree<KKRoute>>();
+    const fMap = new KKP2DTable<number>();
     let rstRange = calcRange(startNode,targetNode);
     let rstRoute:KKRoute = {
         path: [],
         distance: 0
     };
-    openMap.computeIfAbsent(rstRange,()=>new KAVLTree<KKP2D,KKRoute>(compareZIndex))!.set(startNode,rstRoute);
+    openMap.computeIfAbsent(rstRange,()=>new KKP2DTree<KKRoute>())!.set(startNode,rstRoute);
     fMap.set(startNode,rstRange);
     while(openMap.size>0){
         //remove one of least f from openMap
@@ -100,7 +100,7 @@ export function aStar(startNode:KKP2D, targetNode:KKP2D, getLinks:(src:KKP2D)=>[
                         //update f and openMap
                         const f = route.distance+calcRange(node,targetNode);
                         fMap.set(node,f);
-                        openMap.computeIfAbsent(f,()=>new KAVLTree<KKP2D,KKRoute>(compareZIndex))!.set(node,route);
+                        openMap.computeIfAbsent(f,()=>new KKP2DTree<KKRoute>())!.set(node,route);
                     }
                 }
             }

@@ -1,4 +1,4 @@
-import { KAHandler, KAsync, KEvent, KHashTable, KMap, strcmp, strhash} from "@coldcloude/kai2";
+import { KAHandler, KEvent, KMap, KStrTable } from "@coldcloude/kai2";
 
 /**
  * @template C command type
@@ -192,7 +192,7 @@ export abstract class KKStepBroker<G extends KKStepAgent<C,A>,O extends KKObserv
                 requests.push([id,agent.requestAction()]);
             }
             // actions buffer
-            const actionMap = new KHashTable<string,A>(strcmp,strhash);
+            const actionMap = new KStrTable<A>();
             for(const [id,request] of requests){
                 actionMap.set(id,await request);
             }
@@ -216,7 +216,7 @@ export abstract class KKStepBroker<G extends KKStepAgent<C,A>,O extends KKObserv
  */
 export abstract class KKRealtimeBroker<G extends KKRealtimeAgent<C,A>,O extends KKObserver<V>,C,A,V> extends KKBroker<G,O,C,A,V>{
     frame = 0;
-    lastActionMap = new KHashTable<string,A>(strcmp,strhash);
+    lastActionMap = new KStrTable<A>();
     constructor(agentMap:KMap<string,G>,observerMap:KMap<string,O>){
         super(agentMap,observerMap);
         agentMap.foreach((id,agent)=>{
@@ -236,7 +236,7 @@ export abstract class KKRealtimeBroker<G extends KKRealtimeAgent<C,A>,O extends 
             this.updateCommands();
             // pop actions
             const actionMap = this.lastActionMap;
-            this.lastActionMap = new KHashTable<string,A>(strcmp,strhash);
+            this.lastActionMap = new KStrTable<A>();
             //execute logic
             this.execute(actionMap);
             //update views
