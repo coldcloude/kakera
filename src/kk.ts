@@ -8,6 +8,14 @@ export type KKSpriteFrameInfo = {
     height: number
 };
 
+export const EMPTY_FRAME_INFO:KKSpriteFrameInfo = {
+    id: "",
+    positionX: 0,
+    positionY: 0,
+    width: 1,
+    height: 0
+};
+
 export type KKAtlasFrameInfo = {
     positionX: number,
     positionY: number,
@@ -69,6 +77,11 @@ export type KKSize = {
 export const KK_ZERO:KKP2D = {
     x: 0,
     y: 0,
+};
+
+export const ZERO_SIZE:KKSize = {
+    width: 0,
+    height: 0
 };
 
 export const UNIT_SIZE:KKSize = {
