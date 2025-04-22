@@ -1,45 +1,63 @@
-import { KEvent, KHashTable, KMap, strcmp, strhash} from "@coldcloude/kai2";
+import { KAHandler, KEvent, KMap, KStrTable } from "@coldcloude/kai2";
 
 /**
  * @template C command type
  * @template A action type
  */
 export interface KKAgent<C>{
-    updateCommands(commands:C[]):void;
+    updateCommands(commands:C[]):Promise<void>;
+}
+
+export interface KKStepAgent<C,A> extends KKAgent<C>{
+    requestAction():Promise<A>;
 }
 
 /**
  * @template C command type
  * @template A action type
  */
-export interface KKStepAgent<C,A> extends KKAgent<C>{
-    requestAction():Promise<A>;
+export interface KKRealtimeAgent<C,A> extends KKAgent<C> {
+    onAction(handler:KAHandler<A>):void
 }
 
 /**
+ * @template C command type
  * @template A action type
  */
-export abstract class KKCompleteInfoPlayer<A> implements KKStepAgent<void,A>{
-    activeEvent = new KEvent<void>();
-    actionEvent = new KEvent<A>();
-    onActive(handler:()=>void){
+export abstract class KKStepPlayer<C,A> implements KKStepAgent<C,A>{
+    activeEvent = new KEvent<C[]>();
+    actionTrigger:((a:A)=>void)|null = null;
+    onUpdateCommands(handler:KAHandler<C[]>){
         this.activeEvent.register(handler);
     }
-    updateCommands(){
-        this.activeEvent.trigger();
+    async updateCommands(commands:C[]){
+        await this.activeEvent.trigger(commands);
     }
-    requestAction(){
-        return new Promise<A>((cb)=>this.actionEvent.register(cb));
+    requestAction():Promise<A>{
+        return new Promise<A>((cb)=>{
+            this.actionTrigger = cb;
+        });
     }
-    abstract checkAction(action:A):boolean;
-    trySelectAction(action:A):boolean{
-        if(this.checkAction(action)){
-            this.actionEvent.trigger(action);
-            return true;
+    responseAction(action:A){
+        if(this.actionTrigger){
+            this.actionTrigger(action);
+            this.actionTrigger = null;
         }
-        else{
-            return false;
-        }
+    }
+}
+
+/**
+ * @template C command type
+ * @template A action type
+ */
+export abstract class KKPushAgent<C,A> implements KKRealtimeAgent<C,A> {
+    actionEvent = new KEvent<A>();
+    abstract updateCommands(commands:C[]):Promise<void>;
+    onAction(handler:KAHandler<A>){
+        this.actionEvent.register(handler);
+    }
+    async pushAction(a:A){
+        await this.actionEvent.trigger(a);
     }
 }
 
@@ -89,12 +107,12 @@ export abstract class KKFrameRenderer<V> implements KKObserver<V>{
  */
 export class KKDirectRenderer<V> implements KKObserver<V>{
     drawEvent = new KEvent<V>(1);
-    onDraw(draw:(view:V)=>void){
+    onDraw(draw:KAHandler<V>){
         this.drawEvent.register(draw);
     }
     async updateViews(views:V[]){
         if(views.length>0){
-            await (async ()=>this.drawEvent.trigger(views[views.length-1]))();
+            await this.drawEvent.trigger(views[views.length-1]);
         }
     }
 }
@@ -118,8 +136,30 @@ export abstract class KKBroker<G extends KKAgent<C>,O extends KKObserver<V>,C,A,
 
     }
     abstract generateAgentCommandsMap():KMap<string,C[]>;
+    updateCommands(){
+        const agents:[string,G,Promise<void>][] = [];
+        this.generateAgentCommandsMap().foreach((id:string,commands:C[])=>{
+            const agent = this.agentMap.get(id);
+            if(agent){
+                const p = agent.updateCommands(commands);
+                agents.push([id,agent,p]);
+            }
+        });
+        return agents;
+    }
     abstract generateObserverViewsMap():KMap<string,V[]>;
-    abstract execute(actionMap:KMap<string,A>):boolean;
+    updateViews(){
+        const observers:[string,O,Promise<void>][] = [];
+        this.generateObserverViewsMap().foreach((id:string,views:V[])=>{
+            const observer = this.observerMap.get(id);
+            if(observer){
+                const p = observer.updateViews(views);
+                observers.push([id,observer,p]);
+            }
+        });
+        return observers;
+    }
+    abstract execute(actionMap:KMap<string,A>):void;
 }
 
 /**
@@ -143,30 +183,64 @@ export abstract class KKStepBroker<G extends KKStepAgent<C,A>,O extends KKObserv
     async tick(){
         if(this.running){
             this.round++;
+            //update commands
+            const agents = this.updateCommands();
             // request actions
-            const agentCommandsMap = this.generateAgentCommandsMap();
-            const requests:{id:string,request:Promise<A>}[] = [];
-            agentCommandsMap.foreach((id:string,commands:C[])=>{
-                const agent = this.agentMap.get(id);
-                if(agent){
-                    agent.updateCommands(commands);
-                    requests.push({id:id,request:agent.requestAction()});                }
-            });
+            const requests:[string,Promise<A>][] = [];
+            for(const [id,agent,p] of agents){
+                await p;
+                requests.push([id,agent.requestAction()]);
+            }
             // actions buffer
-            const actionMap = new KHashTable<string,A>(strcmp,strhash);
-            for(const {id:id,request:request} of requests){
+            const actionMap = new KStrTable<A>();
+            for(const [id,request] of requests){
                 actionMap.set(id,await request);
             }
             //execute logic
             this.execute(actionMap);
             //update views
-            const observerViewsMap = this.generateObserverViewsMap();
-            observerViewsMap.foreach((id:string,views:V[])=>{
-                const observer = this.observerMap.get(id);
-                if(observer){
-                    observer.updateViews(views);
-                }
+            const observers = this.updateViews();
+            for(const [id,observer,p] of observers){
+                await p;
+            }
+        }
+    }
+}
+
+/**
+ * @template G agent type
+ * @template O observer type
+ * @template C cammand type
+ * @template A action type
+ * @template V view type
+ */
+export abstract class KKRealtimeBroker<G extends KKRealtimeAgent<C,A>,O extends KKObserver<V>,C,A,V> extends KKBroker<G,O,C,A,V>{
+    frame = 0;
+    lastActionMap = new KStrTable<A>();
+    constructor(agentMap:KMap<string,G>,observerMap:KMap<string,O>){
+        super(agentMap,observerMap);
+        agentMap.foreach((id,agent)=>{
+            agent.onAction(async (a:A)=>{
+                this.lastActionMap.set(id,a);
             });
+        });
+    }
+    start(onTick:(t:()=>void)=>void){
+        this.running = true;
+        onTick(()=>this.tick());
+    }
+    tick(){
+        if(this.running){
+            this.frame++;
+            //update commands
+            this.updateCommands();
+            // pop actions
+            const actionMap = this.lastActionMap;
+            this.lastActionMap = new KStrTable<A>();
+            //execute logic
+            this.execute(actionMap);
+            //update views
+            this.updateViews();
         }
     }
 }
